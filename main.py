@@ -1,3 +1,4 @@
+import json
 import string
 import tkinter as tk
 from random import choice, randint, shuffle
@@ -38,6 +39,9 @@ def save_password():
     website = website_input.get()
     email = email_input.get()
     password = password_input.get()
+    new_data = {
+        website: {"email": email, "password": password},
+    }
     if len(website) == 0 or len(email) == 0 or len(password) == 0:
         messagebox.showinfo(title="Empty field", message="We cannot save with a empty field, check your data.")
         save = False
@@ -47,12 +51,46 @@ def save_password():
             message=f"These are the details entered\nEmail: {email}\nPassword: {password}\nIs is ok to save?",
         )
 
-    if save:
-        with open("data.txt", "a") as file:
-            file.write(f"{website} | {email} | {password}\n")
+        if save:
+            try:
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)
+            else:
+                data.update(new_data)
+                with open("data.json", "w") as data_file:
+                    json.dump(data, data_file, indent=4)
+            finally:
+                website_input.delete(0, "end")
+                password_input.delete(0, "end")
 
-        website_input.delete(0, "end")
-        password_input.delete(0, "end")
+
+# ---------------------------- SEARCH PASSWORD ------------------------------- #
+def search_password():
+    website = website_input.get()
+    if len(website) == 0:
+        messagebox.showinfo(title="Empty field", message="We cannot search without a website.")
+        save = False
+    else:
+        try:
+            with open("data.json", "r") as data_file:
+                data = json.load(data_file)
+        except FileNotFoundError:
+            messagebox.showinfo(title="Website error", message="We cannot find that for that website.")
+        else:
+            if website in data:
+                website_data = data[website]
+                email = website_data["email"]
+                password = website_data["password"]
+                messagebox.showinfo(
+                    title=website,
+                    message=f"Email: {email}\nPassword: {password}",
+                )
+                pyperclip.copy(password)
+            else:
+                messagebox.showinfo(title="Website error", message=f"{website} is not in the database.")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -68,20 +106,22 @@ canvas.grid(column=1, row=0)
 website_label = tk.Label(text="Website: ")
 website_label.grid(column=0, row=1)
 
+website_input = tk.Entry(width=34)
+website_input.focus()
+website_input.grid(column=1, row=1)
+
+password_button = tk.Button(text="Search", command=search_password, width=15)
+password_button.grid(column=2, row=1)
+
 email_label = tk.Label(text="Email/Username: ")
 email_label.grid(column=0, row=2)
 
-password_label = tk.Label(text="Password: ")
-password_label.grid(column=0, row=3)
-
-website_input = tk.Entry(width=52)
-website_input.focus()
-
-website_input.grid(column=1, row=1, columnspan=2)
-
-email_input = tk.Entry(width=52)
+email_input = tk.Entry(width=53)
 email_input.insert(0, "dummy.test@gmail.com")
 email_input.grid(column=1, row=2, columnspan=2)
+
+password_label = tk.Label(text="Password: ")
+password_label.grid(column=0, row=3)
 
 password_input = tk.Entry(width=34)
 password_input.grid(column=1, row=3, sticky="e", padx=2)
